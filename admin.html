@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediSeal Quality Week — Admin &amp; Leaderboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #08090f;
+      --panel:   #10111c;
+      --border:  #1e2236;
+      --accent:  #0099e6;
+      --accent2: #00c97a;
+      --warn:    #f5a623;
+      --danger:  #e63946;
+      --text:    #c4cee0;
+      --dim:     #5a6480;
+      --gold:    #ffd700;
+      --silver:  #c0c0c0;
+      --bronze:  #cd7f32;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Courier New', monospace;
+      min-height: 100vh; padding: 16px 20px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 20px;
+      flex-wrap: wrap; gap: 10px;
+    }
+    .header-left h1 { font-size: 1rem; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+    .header-left p  { font-size: 0.7rem; color: var(--dim); margin-top: 2px; }
+    #refresh-badge {
+      font-size: 0.72rem; color: var(--dim); padding: 5px 12px;
+      border: 1px solid var(--border); border-radius: 4px;
+    }
+    #refresh-badge span { color: var(--accent2); }
+
+    /* ── Share URL ── */
+    #share-bar {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 6px; padding: 10px 16px; margin-bottom: 18px;
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      font-size: 0.8rem;
+    }
+    #share-bar label { color: var(--dim); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; }
+    #share-url { color: var(--accent2); font-size: 0.88rem; word-break: break-all; }
+
+    /* ── Summary Cards ── */
+    #summary-row {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 10px; margin-bottom: 20px;
+    }
+    .card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px 16px; text-align: center;
+    }
+    .card .card-val { font-size: 2rem; font-weight: bold; color: var(--text); line-height: 1; margin-bottom: 4px; }
+    .card .card-lbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--dim); }
+    .card.c-playing  .card-val { color: var(--warn); }
+    .card.c-done     .card-val { color: var(--accent2); }
+    .card.c-pending  .card-val { color: var(--dim); }
+
+    /* ── Leaderboard ── */
+    #leaderboard-section h2 {
+      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 2px;
+      color: var(--accent); margin-bottom: 12px;
+    }
+    .lb-table { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
+    .lb-table th {
+      text-align: left; font-size: 0.68rem; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--dim); padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .lb-table td { padding: 10px 10px; border-bottom: 1px solid #14162a; font-size: 0.82rem; vertical-align: middle; }
+    .lb-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .rank-cell { font-size: 1.1rem; width: 44px; text-align: center; }
+    .score-cell { font-size: 1.1rem; font-weight: bold; color: var(--accent2); }
+    .score-cell.top { color: var(--gold); }
+    .name-cell { font-weight: bold; }
+    .puzzles-cell .pip {
+      display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+      margin-right: 2px;
+    }
+    .pip.done    { background: var(--accent2); }
+    .pip.missing { background: var(--border); }
+    .time-cell   { color: var(--dim); font-size: 0.78rem; }
+    .wrong-cell  { color: var(--danger); font-size: 0.78rem; }
+    .status-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 3px;
+      font-size: 0.68rem; letter-spacing: 1px; text-transform: uppercase;
+    }
+    .badge-completed { background: rgba(0,201,122,0.12); color: var(--accent2); border: 1px solid rgba(0,201,122,0.3); }
+    .badge-playing   { background: rgba(245,166,35,0.12); color: var(--warn);    border: 1px solid rgba(245,166,35,0.3); }
+    .badge-pending   { background: rgba(90,100,128,0.15); color: var(--dim);     border: 1px solid var(--border); }
+
+    .no-data { text-align: center; color: var(--dim); padding: 28px; font-size: 0.85rem; }
+
+    /* ── Admin Section ── */
+    #admin-divider {
+      border: none; border-top: 1px solid var(--border);
+      margin: 8px 0 24px;
+    }
+    #admin-section h2 {
+      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 2px;
+      color: var(--dim); margin-bottom: 14px;
+    }
+    #admin-login-form {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 8px; padding: 20px 24px;
+      max-width: 380px; margin-bottom: 20px;
+    }
+    #admin-login-form label { display: block; font-size: 0.72rem; color: var(--dim); margin-bottom: 5px; letter-spacing: 1px; }
+    #admin-login-form input {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); padding: 8px 12px; border-radius: 4px;
+      font-family: inherit; font-size: 0.88rem; margin-bottom: 10px; outline: none;
+    }
+    #admin-login-form input:focus { border-color: var(--accent); }
+    #admin-error { color: var(--danger); font-size: 0.78rem; min-height: 18px; }
+
+    #admin-panel { display: none; }
+    #admin-panel.show { display: block; }
+
+    .admin-tools {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; margin-bottom: 16px;
+    }
+    .admin-tools h3 { font-size: 0.7rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+    .add-group-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+    .add-group-form .field { display: flex; flex-direction: column; gap: 4px; }
+    .add-group-form label { font-size: 0.68rem; color: var(--dim); letter-spacing: 1px; }
+    .add-group-form input {
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); padding: 7px 10px; border-radius: 4px;
+      font-family: inherit; font-size: 0.82rem; outline: none; width: 160px;
+    }
+    .add-group-form input:focus { border-color: var(--accent); }
+
+    .admin-table { width: 100%; border-collapse: collapse; }
+    .admin-table th {
+      text-align: left; font-size: 0.65rem; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--dim); padding: 7px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .admin-table td { padding: 9px 8px; border-bottom: 1px solid #14162a; font-size: 0.8rem; }
+    .pin-cell { font-family: monospace; color: var(--warn); letter-spacing: 2px; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 7px 16px; border: 1px solid var(--border);
+      background: transparent; color: var(--text); border-radius: 4px;
+      cursor: pointer; font-family: inherit; font-size: 0.78rem; transition: all 0.18s;
+    }
+    .btn.primary { border-color: var(--accent); color: var(--accent); }
+    .btn.primary:hover { background: rgba(0,153,230,0.1); }
+    .btn.success { border-color: var(--accent2); color: var(--accent2); }
+    .btn.success:hover { background: rgba(0,201,122,0.1); }
+    .btn.danger  { border-color: var(--danger); color: var(--danger); font-size: 0.72rem; padding: 4px 10px; }
+    .btn.danger:hover { background: rgba(230,57,70,0.1); }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    @media(max-width:600px) {
+      #summary-row { grid-template-columns: repeat(2,1fr); }
+      .lb-table th:nth-child(n+5), .lb-table td:nth-child(n+5) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>🏭 MediSeal Quality Week — Live Dashboard</h1>
+    <p>ISO 13485 Facility · Internal Audit Simulation · Group Competition</p>
+  </div>
+  <div id="refresh-badge">Auto-refresh: <span id="refresh-countdown">5</span>s</div>
+</header>
+
+<!-- Share URL -->
+<div id="share-bar">
+  <label>Share with participants:</label>
+  <span id="share-url">Loading…</span>
+</div>
+
+<!-- Summary cards -->
+<div id="summary-row">
+  <div class="card"><div class="card-val" id="c-total">—</div><div class="card-lbl">Total Groups</div></div>
+  <div class="card c-pending"><div class="card-val" id="c-pending">—</div><div class="card-lbl">Not Started</div></div>
+  <div class="card c-playing"><div class="card-val" id="c-playing">—</div><div class="card-lbl">Playing Now</div></div>
+  <div class="card c-done"><div class="card-val" id="c-done">—</div><div class="card-lbl">Completed</div></div>
+</div>
+
+<hr id="admin-divider" />
+
+<!-- ── Admin Section ── -->
+<section id="admin-section">
+  <h2>🔒 Admin Access</h2>
+
+  <div id="admin-login-form">
+    <label>Admin Password</label>
+    <input type="password" id="admin-pw" placeholder="Enter admin password" />
+    <div id="admin-error"></div>
+    <button class="btn primary" id="admin-login-btn">Login as Admin</button>
+  </div>
+
+  <div id="admin-panel">
+
+    <!-- ── Leaderboard ── -->
+    <section id="leaderboard-section" style="margin-bottom:28px;">
+      <h2 style="font-size:0.72rem;text-transform:uppercase;letter-spacing:2px;color:var(--accent);margin-bottom:12px;">🏆 Live Leaderboard</h2>
+      <table class="lb-table">
+        <thead>
+          <tr>
+            <th class="rank-cell">Rank</th>
+            <th>Group</th>
+            <th>Score</th>
+            <th>Puzzles</th>
+            <th>Time Left</th>
+            <th>Wrong</th>
+            <th>Status</th>
+            <th>Finished</th>
+          </tr>
+        </thead>
+        <tbody id="lb-body"></tbody>
+      </table>
+    </section>
+
+    <!-- ── Scoring guide ── -->
+    <details style="margin-bottom:28px;font-size:0.78rem;color:var(--dim);">
+      <summary style="cursor:pointer;color:var(--accent);font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">
+        Scoring Formula
+      </summary>
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px 18px;line-height:2;margin-top:8px;">
+        Each puzzle completed: <strong style="color:var(--text);">× 200 pts</strong> (max 9 × 200 = 1,800 pts)<br>
+        Time remaining bonus (win only): <strong style="color:var(--text);">× 2 pts per second</strong> (max ~3,000 pts)<br>
+        Wrong answer penalty: <strong style="color:var(--danger);">−10 pts each</strong><br>
+        <em>Maximum possible score: 4,800 pts (all 9 puzzles, no wrong answers, instant completion)</em>
+      </div>
+    </details>
+
+    <div class="admin-tools">
+      <h3>Add New Group</h3>
+      <div class="add-group-form">
+        <div class="field">
+          <label>Group Name</label>
+          <input type="text" id="new-name" placeholder="e.g. Group 9" />
+        </div>
+        <div class="field">
+          <label>PIN</label>
+          <input type="text" id="new-pin" placeholder="e.g. 1009" maxlength="8" />
+        </div>
+        <button class="btn success" id="add-group-btn">Add Group</button>
+      </div>
+      <div id="add-msg" style="margin-top:8px;font-size:0.78rem;min-height:16px;"></div>
+    </div>
+
+    <div class="admin-tools">
+      <h3>All Groups — Full Status</h3>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>PIN</th>
+            <th>Status</th>
+            <th>Score</th>
+            <th>Puzzles</th>
+            <th>Wrong</th>
+            <th>Started</th>
+            <th>Finished</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="admin-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<script>
+'use strict';
+
+let adminToken = sessionStorage.getItem('adminToken') || '';
+let refreshSec  = 5;
+let refreshInt  = null;
+
+// ── API ────────────────────────────────────────────────────────────────────
+async function api(path, method = 'GET', body = null) {
+  const opts = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(adminToken ? { 'X-Auth-Token': adminToken } : {}),
+    },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res  = await fetch(path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function fmtTime(secs) {
+  if (!secs && secs !== 0) return '—';
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+function fmtDt(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+function rankEmoji(i) {
+  return ['🥇','🥈','🥉'][i] || `#${i+1}`;
+}
+
+// ── Load summary ───────────────────────────────────────────────────────────
+async function loadSummary() {
+  try {
+    const s = await api('/api/summary');
+    document.getElementById('c-total').textContent   = s.total;
+    document.getElementById('c-pending').textContent = s.pending;
+    document.getElementById('c-playing').textContent = s.playing;
+    document.getElementById('c-done').textContent    = s.completed;
+  } catch {}
+}
+
+// ── Load public leaderboard ────────────────────────────────────────────────
+async function loadLeaderboard() {
+  try {
+    const board = await api('/api/leaderboard');
+    const tbody = document.getElementById('lb-body');
+
+    if (!board.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="no-data">No groups have completed the game yet. 🏁</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = board.map((g, i) => `
+      <tr>
+        <td class="rank-cell">${rankEmoji(i)}</td>
+        <td class="name-cell">${g.name}</td>
+        <td class="score-cell ${i === 0 ? 'top' : ''}">${g.score.toLocaleString()}</td>
+        <td class="puzzles-cell">${puzzlePips(g.puzzlesDone)} ${g.puzzlesDone}/9</td>
+        <td class="time-cell">${g.won ? '⏱ ' + fmtTime(g.secondsRemaining) : '⏰ DNF'}</td>
+        <td class="wrong-cell">${g.wrongAnswers > 0 ? '✗ ' + g.wrongAnswers : '✓ 0'}</td>
+        <td>${g.won ? '<span class="status-badge badge-completed">PASSED</span>' : '<span class="status-badge badge-pending">TIME UP</span>'}</td>
+        <td style="font-size:0.72rem;color:var(--dim);">${fmtDt(g.completedAt)}</td>
+      </tr>
+    `).join('');
+  } catch {}
+}
+
+function puzzlePips(done) {
+  let h = '';
+  for (let i = 0; i < 9; i++) {
+    h += `<span class="pip ${i < done ? 'done' : 'missing'}"></span>`;
+  }
+  return h;
+}
+
+// ── Load admin panel ───────────────────────────────────────────────────────
+async function loadAdminGroups() {
+  if (!adminToken) return;
+  try {
+    const groups = await api('/api/admin/groups');
+    const tbody  = document.getElementById('admin-tbody');
+    tbody.innerHTML = groups.map(g => `
+      <tr>
+        <td><strong>${g.name}</strong></td>
+        <td class="pin-cell">${g.pin}</td>
+        <td>${statusBadge(g.status)}</td>
+        <td>${g.score !== null ? g.score.toLocaleString() + ' pts' : '—'}</td>
+        <td>${g.puzzlesDone}/9</td>
+        <td style="color:var(--danger)">${g.wrongAnswers || 0}</td>
+        <td style="font-size:0.72rem;color:var(--dim)">${fmtDt(g.startedAt)}</td>
+        <td style="font-size:0.72rem;color:var(--dim)">${fmtDt(g.completedAt)}</td>
+        <td>
+          <button class="btn danger" onclick="resetGroup('${g.id}', '${g.name}')">Reset</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch {}
+}
+
+function statusBadge(s) {
+  if (s === 'completed') return '<span class="status-badge badge-completed">Completed</span>';
+  if (s === 'playing')   return '<span class="status-badge badge-playing">Playing</span>';
+  return '<span class="status-badge badge-pending">Pending</span>';
+}
+
+async function resetGroup(id, name) {
+  if (!confirm(`Reset ${name}? This clears their score and lets them play again.`)) return;
+  try {
+    await api('/api/admin/reset', 'POST', { groupId: id });
+    await refreshAll();
+  } catch (e) { alert(e.message); }
+}
+
+// ── Add group ──────────────────────────────────────────────────────────────
+document.getElementById('add-group-btn').onclick = async () => {
+  const name = document.getElementById('new-name').value.trim();
+  const pin  = document.getElementById('new-pin').value.trim();
+  const msg  = document.getElementById('add-msg');
+  if (!name || !pin) { msg.style.color = 'var(--danger)'; msg.textContent = 'Name and PIN are required.'; return; }
+  try {
+    await api('/api/admin/groups', 'POST', { name, pin });
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-pin').value  = '';
+    msg.style.color = 'var(--accent2)';
+    msg.textContent = `✓ Group "${name}" added.`;
+    await loadAdminGroups();
+  } catch (e) {
+    msg.style.color = 'var(--danger)';
+    msg.textContent = e.message;
+  }
+};
+
+// ── Admin login ────────────────────────────────────────────────────────────
+document.getElementById('admin-login-btn').onclick = async () => {
+  const pw  = document.getElementById('admin-pw').value;
+  const err = document.getElementById('admin-error');
+  try {
+    const res = await api('/api/admin/login', 'POST', { password: pw });
+    adminToken = res.token;
+    sessionStorage.setItem('adminToken', adminToken);
+    document.getElementById('admin-login-form').style.display = 'none';
+    document.getElementById('admin-panel').classList.add('show');
+    await Promise.all([loadLeaderboard(), loadAdminGroups()]);
+  } catch (e) {
+    err.textContent = e.message;
+  }
+};
+document.getElementById('admin-pw').onkeydown = e => {
+  if (e.key === 'Enter') document.getElementById('admin-login-btn').click();
+};
+
+// ── If already have admin token ────────────────────────────────────────────
+if (adminToken) {
+  document.getElementById('admin-login-form').style.display = 'none';
+  document.getElementById('admin-panel').classList.add('show');
+}
+
+// ── Share URL ──────────────────────────────────────────────────────────────
+document.getElementById('share-url').textContent =
+  window.location.protocol + '//' + window.location.host + '/';
+
+// ── Refresh loop ───────────────────────────────────────────────────────────
+async function refreshAll() {
+  const tasks = [loadSummary()];
+  if (adminToken) tasks.push(loadLeaderboard(), loadAdminGroups());
+  await Promise.all(tasks);
+}
+
+function startRefreshLoop() {
+  refreshSec = 5;
+  refreshInt = setInterval(async () => {
+    refreshSec--;
+    document.getElementById('refresh-countdown').textContent = refreshSec;
+    if (refreshSec <= 0) {
+      refreshSec = 5;
+      await refreshAll();
+    }
+  }, 1000);
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+refreshAll();
+startRefreshLoop();
+</script>
+</body>
+</html>
